@@ -1,0 +1,5 @@
+.env/
+.vscode/
+app_settings.json
+tweets.json
+tweets_2.json
