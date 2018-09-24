@@ -3,6 +3,7 @@ import tweepy
 import os
 import jsonpickle
 import sys
+
 from tweepy import AppAuthHandler 
 from textblob import TextBlob 
 
@@ -11,7 +12,7 @@ class TwitterClient(object):
     def __init__(self):
         with open("app_settings.json", "r") as app_settings_file:
             app_settings = jsonpickle.decode(app_settings_file.read(), keys=True)
-        self.file_name = "tweets_2.json"
+        self.file_name = "tweets_3.json"
         try:
             self.auth = AppAuthHandler(app_settings["consumer_key"], app_settings["consumer_secret"])
             self.api = tweepy.API(self.auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
