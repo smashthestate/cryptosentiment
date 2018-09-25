@@ -3,18 +3,18 @@ import tweepy
 import os
 import jsonpickle
 import sys
+import populate_db
 
 from tweepy import AppAuthHandler 
 from textblob import TextBlob 
 
 class TwitterClient(object):
-
     def __init__(self):
         with open("app_settings.json", "r") as app_settings_file:
-            app_settings = jsonpickle.decode(app_settings_file.read(), keys=True)
-        self.file_name = "tweets_3.json"
+            self.app_settings = jsonpickle.decode(app_settings_file.read(), keys=True)
+        self.file_name = "tweets_4.json"
         try:
-            self.auth = AppAuthHandler(app_settings["consumer_key"], app_settings["consumer_secret"])
+            self.auth = AppAuthHandler(self.app_settings["consumer_key"], self.app_settings["consumer_secret"])
             self.api = tweepy.API(self.auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
         except:
             print("Error: Authentication failed")
@@ -34,8 +34,13 @@ class TwitterClient(object):
     def get_and_write_tweets(self, query, count = 10):
         tweets = []
 
+        # Control parameters
+        # since_id = 1040333561344094209 Last id from sunday
+        since_id = 0
         max_id = 0
+        # max_id = 0
         max_tweets = 1000000
+
         tweet_count = 0
         step_count = 0
         
@@ -45,13 +50,19 @@ class TwitterClient(object):
             mode = "a"
 
         with open(self.file_name, mode) as f:
-            while tweet_count < max_tweets:
+            while tweet_count < 100:
                 try:
-                    if(max_id <= 0):
-                        fetched_tweets = self.api.search(q = query, count = count)
+                    if(since_id <= 0):
+                        if(max_id <= 0):
+                            fetched_tweets = self.api.search(q = query, count = count)
+                        else:
+                            fetched_tweets = self.api.search(q = query, count = count, max_id = str(max_id-1))
                     else:
-                        fetched_tweets = self.api.search(q = query, count = count, max_id = str(max_id-1))
-                
+                        if(max_id <= 0):
+                            fetched_tweets = self.api.search(q = query, count = count, since_id = since_id)
+                        else:
+                            fetched_tweets = self.api.search(q = query, count = count, since_id = since_id, max_id = str(max_id-1))
+
                     if not fetched_tweets:
                         print("No more tweets found :(")
                         break
@@ -62,18 +73,17 @@ class TwitterClient(object):
                     print("Downloaded {0} tweets so far. Number of step: {1}".format(tweet_count, step_count))
                     for tweet in fetched_tweets:
                         f.write(jsonpickle.encode(tweet._json, unpicklable=False)+ "\n")
-                        parsed_tweet = {}
-                        if tweet.retweet_count > 0:
-                            if parsed_tweet not in tweets:
-                                tweets.append(parsed_tweet)
-                        else:
-                            tweets.append(parsed_tweet)
+                        tweets.append(tweet)
 
                 except tweepy.TweepError as e:
                     print("Error: " + str(e))
 
         print("Downloaded {0} tweets in {1} steps".format(tweet_count, step_count))
 
+        db_connection = populate_db.DbConnection(self.app_settings["db_name"], self.app_settings["db_user"], self.app_settings["db_password"])
+
+        db_connection.insert_tweets_into_db(tweets)
+        
         return tweets
 
     def retrieve_write_retweeted(self, tweets):
