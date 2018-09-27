@@ -1,5 +1,6 @@
 import jsonpickle
 import psycopg2
+from psycopg2.extras import execute_values
 import tweepy
 
 with open("app_settings.json", "r") as app_settings_file:
@@ -14,28 +15,33 @@ class DbConnection(object):
 
     def insert_tweets_into_db(self, tweets):
         cur = self.conn.cursor()
-        insert_columns_query = ("INSERT INTO users "
-                "(name, screenname, statuses_count, followers_count, friends_count, location, " # users table columns
-                "tweet_text, user_id, created_at, in_reply_to_status_id, in_reply_to_user_id, " # tweets table columns
-                "source, retweeted, retweet_count, favorited, favorite_count) " # tweets table columns
-                "VALUES ")
+        insert_users_query = ("INSERT INTO users "
+                "(name, screenname, statuses_count, followers_count, friends_count, location) "
+                "VALUES %s")
 
-        insert_user_values_query = ""
+        insert_tweets_query = ("INSERT INTO tweets "
+            "(tweet_text, user_id, created_at, in_reply_to_status_id, in_reply_to_user_id, "
+            "source, retweeted, retweet_count, favorited, favorite_count) "
+            "VALUES %s")
+        
+        insert_tweets_values = []
+        insert_users_values = []
 
         for tweet in tweets:
-            # attribute_list = [a for a in dir(tweet) if not a.startswith("__")]
-            # for attribute in attribute_list:
-            if tweet.user.location == "":
-                tweet.user.location = " "
+            u = tweet.user
+            insert_users_values.append((u.name, u.screen_name, u.statuses_count, u.followers_count,
+                                    u.friends_count, u.location))
+           
+            insert_tweets_values.append((tweet.text, tweet.user.id, tweet.created_at,
+                                    tweet.in_reply_to_status_id, tweet.in_reply_to_user_id, tweet.source,
+                                    tweet.retweeted, tweet.retweet_count,
+                                    tweet.favorited, tweet.favorite_count))
 
-            insert_user_values_query += "(\"{t.user.name}\", \"{t.user.screen_name}\", {t.user.statuses_count}, {t.user.followers_count}, " \
-                                    "{t.user.friends_count}, \"{t.user.location}\", \"{t.text}\", {t.user.id}, \"{t.created_at}\", " \
-                                    "{t.in_reply_to_status_id}, {t.in_reply_to_user_id}, \"{t.source}\", {t.retweeted}, {t.retweet_count}, " \
-                                    "{t.favorited}, {t.favorite_count}), ".format(t = tweet)
-        
         if(len(tweets) > 0):
-            cur.execute(insert_columns_query + insert_user_values_query)
+            execute_values(cur, insert_users_query, insert_users_values)
+            execute_values(cur, insert_tweets_query, insert_tweets_values)
         else:
             print("Nothing to insert!")
 
+        self.conn.commit()
         self.conn.close()

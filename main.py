@@ -8,6 +8,8 @@ import populate_db
 from tweepy import AppAuthHandler 
 from textblob import TextBlob 
 
+main_app_settings = {}
+
 class TwitterClient(object):
     def __init__(self):
         with open("app_settings.json", "r") as app_settings_file:
@@ -18,6 +20,10 @@ class TwitterClient(object):
             self.api = tweepy.API(self.auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
         except:
             print("Error: Authentication failed")
+
+        main_app_settings["db_name"] = self.app_settings["db_name"]
+        main_app_settings["db_user"] = self.app_settings["db_user"]
+        main_app_settings["db_password"] = self.app_settings["db_password"]
 
     def clean_tweet(self, tweet): 
         return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split()) 
@@ -35,10 +41,8 @@ class TwitterClient(object):
         tweets = []
 
         # Control parameters
-        # since_id = 1040333561344094209 Last id from sunday
-        since_id = 0
+        since_id = 1044646476725522432
         max_id = 0
-        # max_id = 0
         max_tweets = 1000000
 
         tweet_count = 0
@@ -50,7 +54,7 @@ class TwitterClient(object):
             mode = "a"
 
         with open(self.file_name, mode) as f:
-            while tweet_count < 100:
+            while tweet_count < max_tweets:
                 try:
                     if(since_id <= 0):
                         if(max_id <= 0):
@@ -79,10 +83,6 @@ class TwitterClient(object):
                     print("Error: " + str(e))
 
         print("Downloaded {0} tweets in {1} steps".format(tweet_count, step_count))
-
-        db_connection = populate_db.DbConnection(self.app_settings["db_name"], self.app_settings["db_user"], self.app_settings["db_password"])
-
-        db_connection.insert_tweets_into_db(tweets)
         
         return tweets
 
@@ -106,12 +106,18 @@ class TwitterClient(object):
 
         print("\nAppended {0} retweeted tweets not originally retrieved".format(len(retweeted_tweets_to_append)))
 
+        return tweets
+
 def main():
     api = TwitterClient()
 
     tweets = api.get_and_write_tweets(query = 'bitcoin cash', count = 100)
 
-    api.retrieve_write_retweeted(tweets)
+    tweets = api.retrieve_write_retweeted(tweets)
+
+    db_connection = populate_db.DbConnection(main_app_settings["db_name"], main_app_settings["db_user"], main_app_settings["db_password"])
+
+    db_connection.insert_tweets_into_db(tweets)
 
     # ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive']
     # print("Positive tweets percentage: {} %".format(100*len(ptweets)/len(tweets)))
