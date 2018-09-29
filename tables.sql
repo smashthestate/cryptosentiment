@@ -1,7 +1,8 @@
 CREATE TABLE users (
     id BIGSERIAL NOT NULL PRIMARY KEY,
+    twitter_user_id bigint UNIQUE,
     name text,
-    screenname text,
+    screen_name text,
     statuses_count int,
     followers_count int,
     friends_count int,
