@@ -1,6 +1,7 @@
 .env/
 venv/
 .vscode/
-_pycache_/
+__pycache__/
+*/__pycache__/
 app_settings.json
 tweets*.json

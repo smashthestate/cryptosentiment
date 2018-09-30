@@ -18,7 +18,7 @@ main_app_settings = {}
 class TwitterClient(object):
     def __init__(self):
         with open("app_settings.json", "r") as app_settings_file:
-            self.app_settings = jsonpickle.decode(app_settings_file.read(), keys=True)
+            self.app_settings = jsonpickle.decode(app_settings_file.read())
         self.tweets_file = "tweets_4.json"
         try:
             self.auth = AppAuthHandler(self.app_settings["consumer_key"], self.app_settings["consumer_secret"])
@@ -150,6 +150,7 @@ def main():
     # db_connection.insert_tweets_into_db(tweets, users)
 
     json_deserializer = JsonDeserializer("tweets")
+    json_deserializer.deserialize_json_files()
 
 
 if __name__ == "__main__": 

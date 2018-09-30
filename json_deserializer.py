@@ -16,11 +16,14 @@ class JsonDeserializer(object):
 
     def deserialize_json_files(self):
         readonly_mode = "r"
-        tweet = Tweet()
+        tweets = []
         for json_file in self.json_files:
             with open(json_file, readonly_mode) as f:
-                f
-
+                for line in f:
+                    tweet = Tweet()
+                    tweet = jsonpickle.decode(line, keys=True)
+                    print(tweet)
+                    tweets.append(tweet)
 
     
     
