@@ -9,6 +9,7 @@ from typing import List
 
 # App modules
 import populate_db
+from json_deserializer import JsonDeserializer
 from models import User
 from models import Tweet
 
@@ -142,15 +143,14 @@ class TwitterClient(object):
                 f.write(jsonpickle.encode(tweet._json, unpicklable=False)+ "\n")
 
 def main():
-    api = TwitterClient()
-
-    tweets, users = api.get_tweets(query = 'bitcoin cash', count = 100)
-
+    # api = TwitterClient()
+    # tweets, users = api.get_tweets(query = 'bitcoin cash', count = 100)
     # tweets, users = api.retrieve_retweeted(tweets, users)
+    # db_connection = populate_db.DbConnection(main_app_settings["db_name"], main_app_settings["db_user"], main_app_settings["db_password"])
+    # db_connection.insert_tweets_into_db(tweets, users)
 
-    db_connection = populate_db.DbConnection(main_app_settings["db_name"], main_app_settings["db_user"], main_app_settings["db_password"])
+    json_deserializer = JsonDeserializer("tweets")
 
-    db_connection.insert_tweets_into_db(tweets, users)
 
 if __name__ == "__main__": 
     # calling main function 
