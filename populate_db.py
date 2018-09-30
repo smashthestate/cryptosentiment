@@ -18,14 +18,16 @@ class DbConnection(object):
 
     def insert_tweets_into_db(self, tweets: List[Tweet], users: List[User]):
         cur = self.conn.cursor()
-        insert_users_query = ("INSERT INTO users_test "
+        insert_users_query = ("INSERT INTO users "
                 "(twitter_user_id, name, screen_name, statuses_count, followers_count, friends_count, location) "
-                "VALUES %s")
+                "VALUES %s "
+                "ON CONFLICT (twitter_user_id) DO NOTHING")
 
-        insert_tweets_query = ("INSERT INTO tweets_test "
+        insert_tweets_query = ("INSERT INTO tweets "
             "(tweet_id, tweet_text, user_id, created_at, in_reply_to_status_id, in_reply_to_user_id, "
             "source, retweeted, retweet_count, favorited, favorite_count) "
-            "VALUES %s")
+            "VALUES %s "
+            "ON CONFLICT (tweet_id) DO NOTHING")
         
         insert_tweets_values = []
         insert_users_values = []

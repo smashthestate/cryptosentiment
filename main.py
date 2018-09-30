@@ -45,7 +45,7 @@ class TwitterClient(object):
         # Control params
         since_id = 1044646476725522432
         max_id = 0
-        max_tweets = 100#0000
+        max_tweets = 1000000
 
         tweet_count = 0
         step_count = 0

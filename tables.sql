@@ -11,7 +11,7 @@ CREATE TABLE users (
 
 CREATE TABLE tweets (
     id BIGSERIAL NOT NULL PRIMARY KEY,
-    tweet_id BIGSERIAL,
+    tweet_id bigint UNIQUE,
     tweet_text text,
     user_id bigint,
     created_at timestamp with time zone,
