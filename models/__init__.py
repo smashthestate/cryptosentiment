@@ -1,8 +1,4 @@
-from . import user
-from . import tweet
+import datetime as dt
+from .user import User
+from .tweet import Tweet
 
-class User(object):
-    pass
-
-class Tweet(object):
-    pass

@@ -3,6 +3,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 import tweepy
 from typing import List
+import datetime as dt
 
 from models import User
 from models import Tweet
@@ -33,7 +34,7 @@ class DbConnection(object):
         insert_users_values = []
 
         for tweet in tweets:
-            insert_tweets_values.append((tweet.id, tweet.text, tweet.user.id, tweet.created_at,
+            insert_tweets_values.append((tweet.id, tweet.text, tweet.user_id, tweet.created_at,
                                     tweet.in_reply_to_status_id, tweet.in_reply_to_user_id, tweet.source,
                                     tweet.retweeted, tweet.retweet_count,
                                     tweet.favorited, tweet.favorite_count))
@@ -49,4 +50,19 @@ class DbConnection(object):
             print("Nothing to insert!")
 
         self.conn.commit()
+
+    def retrieve_latest_tweet_id(self):
+        self.cur = self.conn.cursor()
+
+        query_select_latest = "SELECT tweet_id FROM tweets ORDER BY created_at DESC LIMIT 1"
+        self.cur.execute(query_select_latest)
+        latest_tweet_id = self.cur.fetchone()[0]
+        
+        # tweet_id is 2nd column
+        # latest_tweet_id = tweet[1]
+
+        return latest_tweet_id
+
+    def close_connection(self):
         self.conn.close()
+

@@ -42,9 +42,9 @@ class TwitterClient(object):
         else:
             return 'negative'
 
-    def get_tweets(self, query, count = 10):
+    def get_tweets(self, query, latest_tweet_id, count = 10):
         # Control params
-        since_id = 1044646476725522432
+        since_id = latest_tweet_id
         max_id = 0
         max_tweets = 1000000
 
@@ -118,7 +118,11 @@ class TwitterClient(object):
         for attribute_string in dir(fetched_tweet):
             if not attribute_string.startswith("__"):
                 fetched_tweet_field = getattr(fetched_tweet, attribute_string)
-                setattr(tweet, attribute_string, fetched_tweet_field)
+                try:
+                    getattr(Tweet, attribute_string)
+                    setattr(tweet, attribute_string, fetched_tweet_field)
+                except AttributeError as e:
+                    pass
 
                 if isinstance(fetched_tweet_field, tweepy.User) and not user:
                     user = User()
@@ -143,14 +147,18 @@ class TwitterClient(object):
                 f.write(jsonpickle.encode(tweet._json, unpicklable=False)+ "\n")
 
 def main():
-    # api = TwitterClient()
-    # tweets, users = api.get_tweets(query = 'bitcoin cash', count = 100)
-    # tweets, users = api.retrieve_retweeted(tweets, users)
-    # db_connection = populate_db.DbConnection(main_app_settings["db_name"], main_app_settings["db_user"], main_app_settings["db_password"])
-    # db_connection.insert_tweets_into_db(tweets, users)
+    api = TwitterClient()
+    db_connection = populate_db.DbConnection(main_app_settings["db_name"], main_app_settings["db_user"], main_app_settings["db_password"])
+    latest_tweet_id = db_connection.retrieve_latest_tweet_id()
 
-    json_deserializer = JsonDeserializer("tweets")
-    json_deserializer.deserialize_json_files()
+    tweets, users = api.get_tweets(query = 'bitcoin cash', latest_tweet_id = latest_tweet_id, count = 100)
+    tweets, users = api.retrieve_retweeted(tweets, users)
+
+    db_connection.insert_tweets_into_db(tweets, users)
+    db_connection.close_connection
+
+    # json_deserializer = JsonDeserializer("tweets")
+    # tweets = json_deserializer.deserialize_json_files()
 
 
 if __name__ == "__main__": 
