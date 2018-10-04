@@ -12,6 +12,7 @@ import populate_db
 from json_deserializer import JsonDeserializer
 from models import User
 from models import Tweet
+import classifier
 
 main_app_settings = {}
 
