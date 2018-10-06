@@ -155,11 +155,14 @@ def main():
     tweets, users = api.get_tweets(query = 'bitcoin cash', latest_tweet_id = latest_tweet_id, count = 100)
     tweets, users = api.retrieve_retweeted(tweets, users)
 
-    db_connection.insert_tweets_into_db(tweets, users)
-    db_connection.close_connection
+    db_connection.insert_tweets_into_db(tweets)
+    db_connection.insert_users_into_db(users)
 
-    # json_deserializer = JsonDeserializer("tweets")
-    # tweets = json_deserializer.deserialize_json_files()
+    json_deserializer = JsonDeserializer("tweets")
+    tweets = json_deserializer.deserialize_json_files()
+
+    db_connection.insert_tweets_into_db(tweets)
+    db_connection.close_connection
 
 
 if __name__ == "__main__": 

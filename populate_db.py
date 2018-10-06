@@ -17,13 +17,8 @@ class DbConnection(object):
         connection_string = "dbname=" + db_name + " user=" + db_user + " password=" + db_password
         self.conn = psycopg2.connect(connection_string)
 
-    def insert_tweets_into_db(self, tweets: List[Tweet], users: List[User]):
+    def insert_tweets_into_db(self, tweets: List[Tweet]):
         cur = self.conn.cursor()
-        insert_users_query = ("INSERT INTO users "
-                "(twitter_user_id, name, screen_name, statuses_count, followers_count, friends_count, location) "
-                "VALUES %s "
-                "ON CONFLICT (twitter_user_id) DO NOTHING")
-
         insert_tweets_query = ("INSERT INTO tweets "
             "(tweet_id, tweet_text, user_id, created_at, in_reply_to_status_id, in_reply_to_user_id, "
             "source, retweeted, retweet_count, favorited, favorite_count) "
@@ -31,7 +26,6 @@ class DbConnection(object):
             "ON CONFLICT (tweet_id) DO NOTHING")
         
         insert_tweets_values = []
-        insert_users_values = []
 
         for tweet in tweets:
             insert_tweets_values.append((tweet.id, tweet.text, tweet.user_id, tweet.created_at,
@@ -39,13 +33,28 @@ class DbConnection(object):
                                     tweet.retweeted, tweet.retweet_count,
                                     tweet.favorited, tweet.favorite_count))
 
+        if(len(tweets) > 0):
+            execute_values(cur, insert_tweets_query, insert_tweets_values)
+        else:
+            print("Nothing to insert!")
+
+        self.conn.commit()
+
+    def insert_users_into_db(self, users: List[User]):
+        cur = self.conn.cursor()
+        insert_users_query = ("INSERT INTO users "
+                "(twitter_user_id, name, screen_name, statuses_count, followers_count, friends_count, location) "
+                "VALUES %s "
+                "ON CONFLICT (twitter_user_id) DO NOTHING")
+
+        insert_users_values = []
+
         for user in users:
             insert_users_values.append((user.twitter_user_id, user.name, user.screen_name, user.statuses_count, user.followers_count,
                             user.friends_count, user.location))
 
-        if(len(tweets) > 0):
+        if(len(users) > 0):
             execute_values(cur, insert_users_query, insert_users_values)
-            execute_values(cur, insert_tweets_query, insert_tweets_values)
         else:
             print("Nothing to insert!")
 
@@ -57,9 +66,6 @@ class DbConnection(object):
         query_select_latest = "SELECT tweet_id FROM tweets ORDER BY created_at DESC LIMIT 1"
         self.cur.execute(query_select_latest)
         latest_tweet_id = self.cur.fetchone()[0]
-        
-        # tweet_id is 2nd column
-        # latest_tweet_id = tweet[1]
 
         return latest_tweet_id
 
