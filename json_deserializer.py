@@ -23,7 +23,6 @@ class JsonDeserializer(object):
         tweets = []
         for json_file in self.json_files:
             with open(json_file, readonly_mode) as f:
-                # json_full_str = f.read()
                 for line in f:
                     # tweet = Tweet()
                     tweet_dict = jsonpickle.decode(line)
@@ -38,14 +37,6 @@ class JsonDeserializer(object):
         Method copied from:
         https://github.com/jsonpickle/jsonpickle/issues/148#issuecomment-362508753
         '''
-        # object_type = str(desired_class.__class__)
-        # json_dict = json.loads(json_str)
-        # json_dict.update({"py/object":object_type})
-        # return jsonpickle.decode(json.dumps(json_dict))
-
-        # import jsonpickle
-        # json_dict_obj = json.load(json_str)
-
         dct[tags.OBJECT] = util.importable_name(desired_class)
         obj = unpickler.Unpickler().restore(dct, classes=desired_class)
         return obj

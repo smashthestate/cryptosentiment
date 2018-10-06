@@ -6,8 +6,12 @@ from langid.langid import LanguageIdentifier, model
 import re
 from nltk.tokenize import RegexpTokenizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from nltk.corpus import twitter_samples
+from nltk.corpus.reader.twitter import TwitterCorpusReader
+# from nltk.corpus.reader import twitter
 
 from populate_db import DbConnection
+from json_deserializer import JsonDeserializer
 
 def main():
     app_settings = ''
@@ -28,33 +32,42 @@ def main():
     regex_pattern = r'([Bb]itcoin[\s]*[Cc]ash)|(#[Bb][Cc][Hh])'
     identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
 
-    for tweet_text in tweet_texts:
-        if re.search(regex_pattern, tweet_text) and identifier.classify(tweet_text)[0] == 'en':
-            ss = sid.polarity_scores(tweet_text)
-            tweet_sentiment.append(ss['compound'])
-        elif not identifier.classify(tweet_text)[0] == 'en':
-            tweet_sentiment.append(-100)
-        else:
-            tweet_sentiment.append(-500)
+    nltk_positive_tweets_json = twitter_samples.docs(fileids='positive_tweets.json')
 
-        # tokenizer = RegexpTokenizer()
-        # tokenizer = TweetTokenizer(strip_handles=True)
-        # tweet_text = tokenizer.tokenize(tweet_text)
-        # blob = TextBlob(tweet_text,tokenizer)
+    for tweet in nltk_positive_tweets_json:
+        print(tweet)
+        print("{0} .\n".format(dir(tweet)))
+        print(len(tweet))
+        # return
+
+    print(len(nltk_positive_tweets_json))
+    # for tweet_text in tweet_texts:
+    #     if re.search(regex_pattern, tweet_text) and identifier.classify(tweet_text)[0] == 'en':
+    #         ss = sid.polarity_scores(tweet_text)
+    #         tweet_sentiment.append(ss['compound'])
+    #     elif not identifier.classify(tweet_text)[0] == 'en':
+    #         tweet_sentiment.append(-100)
+    #     else:
+    #         tweet_sentiment.append(-500)
+
+    #     # tokenizer = RegexpTokenizer()
+    #     # tokenizer = TweetTokenizer(strip_handles=True)
+    #     # tweet_text = tokenizer.tokenize(tweet_text)
+    #     # blob = TextBlob(tweet_text,tokenizer)
     
-    df['sentiment_polarity'] = pd.Series(tweet_sentiment, index = df.index)
+    # df['sentiment_polarity'] = pd.Series(tweet_sentiment, index = df.index)
 
-    polarity_series = df['sentiment_polarity']
-    texts_high_polarity = [tweet_text for polarity, tweet_text in zip(polarity_series, df['tweet_text']) if not polarity == -500 and not polarity == 0 and not polarity == -100]
+    # polarity_series = df['sentiment_polarity']
+    # texts_high_polarity = [tweet_text for polarity, tweet_text in zip(polarity_series, df['tweet_text']) if not polarity == -500 and not polarity == 0 and not polarity == -100]
 
-    # for polarity, text in zip(polarity_series[:100], texts_high_polarity[:100]):
-    #     print("{0} has a polarity of: {1}".format(text, polarity))
+    # # for polarity, text in zip(polarity_series[:100], texts_high_polarity[:100]):
+    # #     print("{0} has a polarity of: {1}".format(text, polarity))
 
-    for text in texts_high_polarity[:1000]:
-        print(text+"\n\n")
+    # for text in texts_high_polarity[:1000]:
+    #     print(text+"\n\n")
     
-    print(len(df['sentiment_polarity']))
-    print(len(texts_high_polarity))    
+    # print(len(df['sentiment_polarity']))
+    # print(len(texts_high_polarity))    
 
 if __name__ == "__main__": 
     # calling main function 
