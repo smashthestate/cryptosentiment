@@ -127,6 +127,7 @@ class TwitterClient(object):
 
                 if isinstance(fetched_tweet_field, tweepy.User) and not user:
                     user = User()
+                    tweet.user_id = fetched_tweet_field.id
                     user.twitter_user_id = fetched_tweet_field.id
                     user.name = fetched_tweet_field.name
                     user.screen_name = fetched_tweet_field.screen_name
@@ -158,12 +159,11 @@ def main():
     db_connection.insert_tweets_into_db(tweets)
     db_connection.insert_users_into_db(users)
 
-    json_deserializer = JsonDeserializer("tweets")
-    tweets = json_deserializer.deserialize_json_files()
+    # json_deserializer = JsonDeserializer("tweets")
+    # tweets = json_deserializer.deserialize_json_files()
+    # db_connection.insert_tweets_into_db(tweets)
 
-    db_connection.insert_tweets_into_db(tweets)
     db_connection.close_connection
-
 
 if __name__ == "__main__": 
     # calling main function 

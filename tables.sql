@@ -22,4 +22,11 @@ CREATE TABLE tweets (
     retweet_count int,
     favorited boolean,
     favorite_count int
+);
+
+CREATE TABLE sentiments (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    tweet_id bigint UNIQUE references tweets(tweet_id),
+    tweet_text text,
+    sentiment text
 )

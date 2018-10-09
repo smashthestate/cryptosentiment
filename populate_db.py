@@ -61,13 +61,21 @@ class DbConnection(object):
         self.conn.commit()
 
     def retrieve_latest_tweet_id(self):
-        self.cur = self.conn.cursor()
-
+        cur = self.conn.cursor()
         query_select_latest = "SELECT tweet_id FROM tweets ORDER BY created_at DESC LIMIT 1"
-        self.cur.execute(query_select_latest)
-        latest_tweet_id = self.cur.fetchone()[0]
-
+        cur.execute(query_select_latest)
+        latest_tweet_id = cur.fetchone()[0]
         return latest_tweet_id
+
+    def insert_df_into_table(self, table, columns, dataframe):
+        cur = self.conn.cursor()
+        # columns = [column, ','.join(column) for column in columns]
+        query = "INSERT INTO {0} ({1}) VALUES %s".format(table, columns)
+
+        data_list = [row for row in dataframe.itertuples(index=False, name=None)]
+
+        execute_values(cur, query, data_list)
+        self.conn.commit()
 
     def close_connection(self):
         self.conn.close()
