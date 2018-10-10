@@ -4,6 +4,7 @@ from psycopg2.extras import execute_values
 import tweepy
 from typing import List
 import datetime as dt
+import re
 
 from models import User
 from models import Tweet
@@ -70,7 +71,10 @@ class DbConnection(object):
     def insert_df_into_table(self, table, columns, dataframe):
         cur = self.conn.cursor()
         # columns = [column, ','.join(column) for column in columns]
-        query = "INSERT INTO {0} ({1}) VALUES %s".format(table, columns)
+        query = "INSERT INTO {} ({}) VALUES %s".format(table, columns).replace("[","").replace("]", "")
+        query = re.sub("[\[\]']", "", query) 
+        # (" + ",".join(['{}']*len(columns)) + ")
+        # query = query.format(table, columns)
 
         data_list = [row for row in dataframe.itertuples(index=False, name=None)]
 

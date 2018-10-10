@@ -28,5 +28,7 @@ CREATE TABLE sentiments (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     tweet_id bigint UNIQUE references tweets(tweet_id),
     tweet_text text,
-    sentiment text
+    sentiment_naivebayes text,
+    sentiment_textblob text,
+    sentiment_vader text
 )
