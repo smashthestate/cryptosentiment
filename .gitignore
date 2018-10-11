@@ -1,7 +1,10 @@
 .env/
 venv/
 .vscode/
+data/
 __pycache__/
 */__pycache__/
 app_settings.json
 tweets*.json
+*.csv
+

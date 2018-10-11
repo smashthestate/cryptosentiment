@@ -43,6 +43,11 @@ class TwitterClient(object):
         else:
             return 'negative'
 
+    def get_tweet_by_id(self, tweet_id):
+        tweet = self.api.get_status(tweet_id, tweet_mode="extended")
+        tweet, user = self.extract_tweet_and_user(tweet)
+        return tweet, user
+
     def get_tweets(self, query, latest_tweet_id, count = 10):
         # Control params
         since_id = latest_tweet_id
@@ -58,14 +63,14 @@ class TwitterClient(object):
             try:
                 if(since_id <= 0):
                     if(max_id <= 0):
-                        tweets_batch = self.api.search(q = query, count = count)
+                        tweets_batch = self.api.search(q = query, count = count, tweet_mode="extended")
                     else:
-                        tweets_batch = self.api.search(q = query, count = count, max_id = str(max_id-1))
+                        tweets_batch = self.api.search(q = query, count = count, max_id = str(max_id-1), tweet_mode="extended")
                 else:
                     if(max_id <= 0):
-                        tweets_batch = self.api.search(q = query, count = count, since_id = since_id)
+                        tweets_batch = self.api.search(q = query, count = count, since_id = since_id, tweet_mode="extended")
                     else:
-                        tweets_batch = self.api.search(q = query, count = count, since_id = since_id, max_id = str(max_id-1))
+                        tweets_batch = self.api.search(q = query, count = count, since_id = since_id, max_id = str(max_id-1), tweet_mode="extended")
 
                 if not tweets_batch:
                     print("No more tweets found :(")
@@ -119,6 +124,8 @@ class TwitterClient(object):
         for attribute_string in dir(fetched_tweet):
             if not attribute_string.startswith("__"):
                 fetched_tweet_field = getattr(fetched_tweet, attribute_string)
+                if fetched_tweet_field == "extended_tweet":
+                    setattr(tweet, "extended_text", fetched_tweet_field["full_text"])
                 try:
                     getattr(Tweet, attribute_string)
                     setattr(tweet, attribute_string, fetched_tweet_field)

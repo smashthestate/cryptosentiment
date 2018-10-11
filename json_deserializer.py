@@ -27,7 +27,6 @@ class JsonDeserializer(object):
                     # tweet = Tweet()
                     tweet_dict = jsonpickle.decode(line)
                     tweet = self.from_json(Tweet, tweet_dict)
-                    print(tweet)
                     tweets.append(tweet)
         
         return tweets

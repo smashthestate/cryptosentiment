@@ -29,7 +29,7 @@ class DbConnection(object):
         insert_tweets_values = []
 
         for tweet in tweets:
-            insert_tweets_values.append((tweet.id, tweet.text, tweet.user_id, tweet.created_at,
+            insert_tweets_values.append((tweet.id, tweet.full_text, tweet.user_id, tweet.created_at,
                                     tweet.in_reply_to_status_id, tweet.in_reply_to_user_id, tweet.source,
                                     tweet.retweeted, tweet.retweet_count,
                                     tweet.favorited, tweet.favorite_count))
@@ -73,6 +73,7 @@ class DbConnection(object):
         # columns = [column, ','.join(column) for column in columns]
         query = "INSERT INTO {} ({}) VALUES %s".format(table, columns).replace("[","").replace("]", "")
         query = re.sub("[\[\]']", "", query) 
+        query += "ON CONFLICT (tweet_id) DO NOTHING"
         # (" + ",".join(['{}']*len(columns)) + ")
         # query = query.format(table, columns)
 

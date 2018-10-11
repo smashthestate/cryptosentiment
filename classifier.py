@@ -106,22 +106,11 @@ def main():
 
     tweet_sentiments_df = pd.DataFrame(sentiments_dict, tweets_df.index)
     tweets_df = pd.concat([tweets_df, tweet_sentiments_df], axis = 1)
+
+    tweets_df.to_csv("tweets.csv")
     cols_to_insert = ['tweet_id', 'tweet_text', 'sentiment_naivebayes', 'sentiment_textblob', 'sentiment_vader']
 
-    # Refactor column names part!
-    db.insert_df_into_table('sentiments', cols_to_insert, tweets_df.loc[:,cols_to_insert])
-    # polarity_series = df['sentiment_polarity']
-    # texts_high_polarity = [tweet_text for polarity, tweet_text in zip(polarity_series, df['tweet_text']) if not polarity == -500 and not polarity == 0 and not polarity == -100]
-
-    # for polarity, text in zip(polarity_series[:100], texts_high_polarity[:100]):
-    #     print("{0} has a polarity of: {1}".format(text, polarity))
-
-    # for text, label in zip(df['tweet_text'],df['sentiment_polarity']):
-    #     print(text + " " + label + "\n\n")
-    
-
-    # print(len(df['sentiment_polarity']))
-    # print(len(texts_high_polarity))    
+    # db.insert_df_into_table('sentiments', cols_to_insert, tweets_df.loc[:,cols_to_insert])
 
 if __name__ == "__main__": 
     # calling main function 
