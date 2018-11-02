@@ -20,11 +20,16 @@ class DbConnection(object):
 
     def insert_tweets_into_db(self, tweets: List[Tweet]):
         cur = self.conn.cursor()
-        insert_tweets_query = ("INSERT INTO tweets "
+        insert_tweets_query = ("INSERT INTO tweets_full "
             "(tweet_id, tweet_text, user_id, created_at, in_reply_to_status_id, in_reply_to_user_id, "
             "source, retweeted, retweet_count, favorited, favorite_count) "
             "VALUES %s "
-            "ON CONFLICT (tweet_id) DO NOTHING")
+            "ON CONFLICT (tweet_id) DO UPDATE "
+            "SET retweeted = EXCLUDED.retweeted, "
+            "SET retweet_count = EXCLUDED.retweet_count, "
+            "SET favorited = EXCLUDED.favorited, "
+            "SET favorite_count = EXCLUDED.favorite_count "
+            "RETURNING id")
         
         insert_tweets_values = []
 
@@ -43,10 +48,17 @@ class DbConnection(object):
 
     def insert_users_into_db(self, users: List[User]):
         cur = self.conn.cursor()
-        insert_users_query = ("INSERT INTO users "
+        insert_users_query = ("INSERT INTO users_full "
                 "(twitter_user_id, name, screen_name, statuses_count, followers_count, friends_count, location) "
                 "VALUES %s "
-                "ON CONFLICT (twitter_user_id) DO NOTHING")
+                "ON CONFLICT (twitter_user_id) DO UPDATE "
+                "SET name = EXCLUDED.name, "
+                "SET screen_name = EXCLUDED.screen_name, "
+                "SET statuses_count = EXCLUDED.statuses_count, "
+                "SET followers_count = EXCLUDED.followers_count, "
+                "SET friends_count = EXCLUDED.friends_count, "
+                "SET location = EXCLUDED.location"
+                "RETURNING id")
 
         insert_users_values = []
 
@@ -67,6 +79,13 @@ class DbConnection(object):
         cur.execute(query_select_latest)
         latest_tweet_id = cur.fetchone()[0]
         return latest_tweet_id
+
+    def retrieve_tweets(self):
+        cur = self.conn.cursor()
+        query_select_tweets = "SELECT tweet_id FROM tweets"
+        cur.execute(query_select_tweets)
+        tweets = cur.fetchall()
+        return tweets
 
     def insert_df_into_table(self, table, columns, dataframe):
         cur = self.conn.cursor()

@@ -12,7 +12,7 @@ import populate_db
 from json_deserializer import JsonDeserializer
 from models import User
 from models import Tweet
-import classifier
+import nltk_classifier
 
 main_app_settings = {}
 
@@ -159,12 +159,23 @@ def main():
     api = TwitterClient()
     db_connection = populate_db.DbConnection(main_app_settings["db_name"], main_app_settings["db_user"], main_app_settings["db_password"])
     latest_tweet_id = db_connection.retrieve_latest_tweet_id()
+    tweet_ids = db_connection.retrieve_tweets()
+    
+    # tweets_list = []
+    # users_list = []
 
-    tweets, users = api.get_tweets(query = 'bitcoin cash', latest_tweet_id = latest_tweet_id, count = 100)
-    tweets, users = api.retrieve_retweeted(tweets, users)
+    # for tweet in tweet_ids:
+    #     tweet, user = api.get_tweet_by_id(tweet[0])
+    #     tweets_list.append(tweet) 
+    #     users_list.append(user)
+    
+    tweet, user = api.get_tweet_by_id(1048582463998636037)
 
-    db_connection.insert_tweets_into_db(tweets)
-    db_connection.insert_users_into_db(users)
+    # tweets, users = api.get_tweets(query = 'bitcoin cash', latest_tweet_id = latest_tweet_id, count = 100)
+    # tweets, users = api.retrieve_retweeted(tweets, users)
+
+    # db_connection.insert_tweets_into_db(tweets_list)
+    # db_connection.insert_users_into_db(users_list)
 
     # json_deserializer = JsonDeserializer("tweets")
     # tweets = json_deserializer.deserialize_json_files()
