@@ -169,10 +169,10 @@ def main():
     #     tweets_list.append(tweet) 
     #     users_list.append(user)
     
-    tweet, user = api.get_tweet_by_id(1048582463998636037)
+    # tweet, user = api.get_tweet_by_id(1048582463998636037)
 
-    # tweets, users = api.get_tweets(query = 'bitcoin cash', latest_tweet_id = latest_tweet_id, count = 100)
-    # tweets, users = api.retrieve_retweeted(tweets, users)
+    tweets, users = api.get_tweets(query = 'bitcoin cash', latest_tweet_id = latest_tweet_id, count = 100)
+    tweets, users = api.retrieve_retweeted(tweets, users)
 
     # db_connection.insert_tweets_into_db(tweets_list)
     # db_connection.insert_users_into_db(users_list)

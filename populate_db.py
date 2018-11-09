@@ -20,7 +20,7 @@ class DbConnection(object):
 
     def insert_tweets_into_db(self, tweets: List[Tweet]):
         cur = self.conn.cursor()
-        insert_tweets_query = ("INSERT INTO tweets_full "
+        insert_tweets_query = ("INSERT INTO tweets "
             "(tweet_id, tweet_text, user_id, created_at, in_reply_to_status_id, in_reply_to_user_id, "
             "source, retweeted, retweet_count, favorited, favorite_count) "
             "VALUES %s "
@@ -48,7 +48,7 @@ class DbConnection(object):
 
     def insert_users_into_db(self, users: List[User]):
         cur = self.conn.cursor()
-        insert_users_query = ("INSERT INTO users_full "
+        insert_users_query = ("INSERT INTO users "
                 "(twitter_user_id, name, screen_name, statuses_count, followers_count, friends_count, location) "
                 "VALUES %s "
                 "ON CONFLICT (twitter_user_id) DO UPDATE "

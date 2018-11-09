@@ -1,52 +1,44 @@
 # from textblob import TextBlob
 import pandas as pd
+import numpy as np
+import re
 import jsonpickle
 import collections
 # import textblob
-from sklearn.naive_bayes import GaussianNB
+from sklearn.utils import shuffle
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import SGDClassifier
+from sklearn import svm
+from sklearn import metrics
+from sklearn.model_selection import GridSearchCV
+from sklearn.tree import DecisionTreeClassifier
+
+from nltk.corpus import stopwords
 
 from populate_db import DbConnection
 from json_deserializer import JsonDeserializer
-from nltk.tokenize import TweetTokenizer
 
-tokenizer = TweetTokenizer(strip_handles=True)
+def clean_tweet(tweet):
+    tweet = ' '.join(re.sub(r"(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
+    tweet = re.sub("&amp;", " ", tweet)
+    tweet = re.sub("&quote;", " ", tweet)
+    tweet_word_list = tweet.split(" ")
+    # tweet = " ".join([word for word in tweet_word_list if word not in stopwords.words("english")])
+    return tweet
 
-def word_feats(text):
-    words = tokenizer.tokenize(text)
-    return dict([(word, True) for word in words])
+def show_most_informative_features(vectorizer, clf, n=10):
+    feature_names = vectorizer.get_feature_names()
+    coefs_with_fns = sorted(zip(clf.coef_[0], feature_names))
+    top = zip(coefs_with_fns[:n], coefs_with_fns[:-(n+1):-1])
+    for (coef1, fn1), (coef2, fn2) in top:
+        print("Negative class feat: {0} : {1} \n".format(fn1, coef1))
+        print("Positive class feat: {0} : {1} \n".format(fn2, coef2))
 
-def best_word_feats(text, bestwords):
-    words = tokenizer.tokenize(text)
-    return dict([(word, True) for word in words if word in bestwords])
 
-
-def extract_feats(dataframe):
-    posfeats = [(word_feats(positive_tweet['text']), 'pos') for index, positive_tweet in dataframe.iterrows() if positive_tweet['polarity'] == 4]
-    neutfeats = [(word_feats(neutral_tweet['text']), 'neutral') for index, neutral_tweet in dataframe.iterrows() if neutral_tweet['polarity'] == 2]
-    negfeats = [(word_feats(negative_tweet['text']), 'neg') for index, negative_tweet in dataframe.iterrows() if negative_tweet['polarity'] == 0]
-
-    all_feats = posfeats + neutfeats + negfeats
-    
-    return all_feats
-
-def extract_best_feats(dataframe, bestwords):
-    # modify tuple for sklearn classifier
-    posfeats = [(best_word_feats(positive_tweet['text'], bestwords), 'pos') for index, positive_tweet in dataframe.iterrows() if positive_tweet['polarity'] == 4]
-    neutfeats = [(best_word_feats(neutral_tweet['text'], bestwords), 'neutral') for index, neutral_tweet in dataframe.iterrows() if neutral_tweet['polarity'] == 2]
-    negfeats = [(best_word_feats(negative_tweet['text'], bestwords), 'neg') for index, negative_tweet in dataframe.iterrows() if negative_tweet['polarity'] == 0]
-
-    all_feats = posfeats + neutfeats + negfeats
-    
-    return all_feats
-
-def retrieve_label(polarity_score):
-    if polarity_score > 0:
-        label = 'pos'
-    elif polarity_score < 0:
-        label = 'neg'
-    else:
-        label = 'neutral'
-    return label
 
 def main():
     # app_settings = ''
@@ -60,25 +52,44 @@ def main():
     # db_table = "SELECT * FROM tweets"
 
     colnames = ['polarity', 'tweet_id', 'date', 'query', 'user', 'text']
-    tweets_df_stanford_train = pd.read_csv("stanford_training.csv", header=None, names=colnames, encoding="ISO-8859-1")
+    tweets_df_stanford_train = shuffle(pd.read_csv("stanford_training.csv", header=None, names=colnames, encoding="ISO-8859-1"))
     tweets_df_stanford_test = pd.read_csv("stanford_test.csv", header=None, names=colnames, encoding="ISO-8859-1")
 
-    train_feats_array = []
-    train_labels_array = []
+    text_clf = Pipeline([('vect', HashingVectorizer()),
+                        ('tfidf', TfidfTransformer()),
+                        ('clf', SGDClassifier(penalty='l2',
+                                            alpha=1e-3, random_state=42,
+                                            max_iter=5, tol=None))
+                        ])
 
-    for (feats, label) in extract_feats(tweets_df_stanford_train[1:100]):
-        train_feats_array.append(feats)
-        train_labels_array.append(label)
+    text_nb_clf = Pipeline([('vect', CountVectorizer()),
+                    ('tfidf', TfidfTransformer(smooth_idf=False)),
+                    ('clf', MultinomialNB())
+                    ])
 
-    # test_feats_array = []
-    # test_labels_array = []
+    negative_tweets = tweets_df_stanford_train[tweets_df_stanford_train['polarity']==0]
+    positive_tweets = tweets_df_stanford_train[tweets_df_stanford_train['polarity']==4]
+    negative_tweets_fraction = negative_tweets[:int(0.4*len(negative_tweets))]
     
-    # for (feats, label) in extract_feats(tweets_df_stanford_test):
-    #     test_feats_array.append(feats)
-    #     test_labels_array.append(label)
+    train_data = shuffle(pd.concat([positive_tweets, negative_tweets_fraction]))
 
-    gnb = GaussianNB()
-    model = gnb.fit(train_feats_array, train_labels_array)
+    train_data['text'] = train_data['text'].apply(clean_tweet)   
+    text_nb_clf = text_nb_clf.fit(train_data['text'], train_data['polarity'])
+
+    parameters = {'vect__ngram_range': [(1, 1), (1, 2)],
+                  #'tfidf__use_idf': (True,  False),
+                  'clf__alpha': (1e-2, 1e-3),
+    }
+
+    non_neutral_examples_binary = tweets_df_stanford_test['polarity'] != 2 
+    predicted = text_nb_clf.predict(tweets_df_stanford_test[non_neutral_examples_binary]['text'])
+    print(metrics.accuracy_score(tweets_df_stanford_test[non_neutral_examples_binary]['polarity'], predicted))
+    print(metrics.classification_report(tweets_df_stanford_test[non_neutral_examples_binary]['polarity'], predicted))    
+
+    show_most_informative_features(text_nb_clf.steps[0][1], text_nb_clf.steps[2][1])
+    # for param_name in sorted(parameters.keys()):
+    #     print('Best {0} value: {1}'.format(param_name, gs_clf.best_params_[param_name]))
+
 
 if __name__ == "__main__": 
     # calling main function 
