@@ -20,29 +20,41 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 
 from nltk.corpus import stopwords
+from nltk.collocations import *
+from nltk.metrics import BigramAssocMeasures
 from nltk.stem.porter import PorterStemmer
 
 from populate_db import DbConnection
 from json_deserializer import JsonDeserializer
 
-def clean_tweet(tweet, stopwords, stemmer):
+# def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=200):
+#     bigram_finder = BigramCollocationFinder.from_words(tweets)
+#     best_bigrams = bigram_finder.nbest(score_fn, n)
+#     for tweet in tweets:
+#         if best_bigrams in tweet:
+#             best_bigrams
+
+#     return best_bigrams
+
+def clean_tweet(tweet, stopwords):
     # tweet = ' '.join(re.sub(r"(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
-    tweet = re.sub(r"(@[A-Za-z0-9]+)|(\w+://\S+)", " ", tweet) # Remove @mentions and URLs
+    tweet = re.sub(r"(@[A-Za-z0-9]+)", " ", tweet) # Remove @mentions
+    tweet = re.sub(r"(\w+://\S+)", " ", tweet) # Remove URLs
     tweet = re.sub("[0-9]+", " ", tweet) # Remove numbers
     tweet = re.sub("&amp;", " ", tweet) # Remove twitter api & representation
     tweet = re.sub("&quote;", " ", tweet) # Remove twitter api " representation
-    tweet = re.sub(r"([^0-9A-Za-z \t])", "", tweet) # Remove special characters
+    tweet = re.sub(r"([^0-9A-Za-z \t])", " ", tweet) # Remove special characters
     # tweet = ' '.join(tweet.split())
-    tweet_word_list = tweet.split()
-    tweet = " ".join([word for word in tweet_word_list if word not in stopwords])
+    # tweet_word_list = tweet.split()
+    # tweet = " ".join([word for word in tweet_word_list if word not in stopwords])
 
     # loop for removing letters repeating more than twice
-    index_counter = 0
-    for letter in tweet:
-        if index_counter>1 and letter.lower() == tweet[index_counter-1].lower() and letter.lower() == tweet[index_counter-2].lower():
-            tweet = tweet[:index_counter] + tweet[index_counter+1:]
-            index_counter -= 1
-        index_counter += 1
+    # index_counter = 0
+    # for letter in tweet:
+    #     if index_counter>1 and letter.lower() == tweet[index_counter-1].lower() and letter.lower() == tweet[index_counter-2].lower():
+    #         tweet = tweet[:index_counter] + tweet[index_counter+1:]
+    #         index_counter -= 1
+    #     index_counter += 1
 
     return tweet
 
@@ -76,19 +88,18 @@ def main():
                                             max_iter=5, tol=None))
                         ])
 
-
     text_nb_clf = Pipeline([('vect', CountVectorizer()),
                     # ('tfidf', TfidfTransformer()),
                     ('clf', MultinomialNB())
                     ])
 
-    text_lr_clf = Pipeline([('vect', CountVectorizer()),
+    text_lr_clf = Pipeline([('vect', CountVectorizer(ngram_range=(1,2))),
                     ('tfidf', TfidfTransformer()),
                     ('clf', LogisticRegression(random_state=0, solver='lbfgs'))
                     ])
 
     negative_tweets = tweets_df_stanford_train[tweets_df_stanford_train['polarity']==0]
-    negative_tweets = negative_tweets[-int(0.35*len(negative_tweets)):]
+    # negative_tweets = negative_tweets[-int(0.35*len(negative_tweets)):]
     positive_tweets = tweets_df_stanford_train[tweets_df_stanford_train['polarity']==4]
 
     # Split data by 60% : 20% : 20%
@@ -116,9 +127,9 @@ def main():
         word = re.sub("'","",word)
         stopwords_set.add(word)
 
-    porter_stemmer = PorterStemmer()
-
-    train_data['text'] = train_data['text'].apply(lambda x: clean_tweet(x, stopwords_set, porter_stemmer))   
+    train_data['text'] = train_data['text'].apply(lambda x: clean_tweet(x, stopwords_set)) 
+    words = train_data['text'].values
+    feats = bigram_word_feats(words)
 
     parameters = {'vect__ngram_range': [(1, 1), (1, 2)],
                 #   'tfidf__use_idf': (True,  False),
@@ -127,7 +138,7 @@ def main():
 
     text_lr_clf = text_lr_clf.fit(train_data['text'], train_data['polarity'])
 
-    non_neutral_examples_binary = val_data['polarity'] != 2 
+    non_neutral_examples_binary = val_data['polarity'] != 2
     predicted = text_lr_clf.predict(val_data[non_neutral_examples_binary]['text'])
     print(metrics.accuracy_score(val_data[non_neutral_examples_binary]['polarity'], predicted))
     print(metrics.classification_report(val_data[non_neutral_examples_binary]['polarity'], predicted))    
