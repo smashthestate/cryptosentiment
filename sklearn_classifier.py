@@ -41,7 +41,7 @@ def clean_tweet(tweet, stopwords):
     tweet = re.sub(r"(@[A-Za-z0-9]+)", " ", tweet) # Remove @mentions
     tweet = re.sub(r"(\w+://\S+)", " ", tweet) # Remove URLs
     tweet = re.sub("[0-9]+", " ", tweet) # Remove numbers
-    tweet = re.sub("&amp;", " ", tweet) # Remove twitter api & representation
+    tweet = re.sub("&amp;", "and", tweet) # Remove twitter api & representation
     tweet = re.sub("&quote;", " ", tweet) # Remove twitter api " representation
     tweet = re.sub(r"([^0-9A-Za-z \t])", " ", tweet) # Remove special characters
     # tweet = ' '.join(tweet.split())
@@ -128,8 +128,6 @@ def main():
         stopwords_set.add(word)
 
     train_data['text'] = train_data['text'].apply(lambda x: clean_tweet(x, stopwords_set)) 
-    words = train_data['text'].values
-    feats = bigram_word_feats(words)
 
     parameters = {'vect__ngram_range': [(1, 1), (1, 2)],
                 #   'tfidf__use_idf': (True,  False),
