@@ -161,16 +161,6 @@ def main():
     latest_tweet_id = db_connection.retrieve_latest_tweet_id()
     tweet_ids = db_connection.retrieve_tweets()
     
-    # tweets_list = []
-    # users_list = []
-
-    # for tweet in tweet_ids:
-    #     tweet, user = api.get_tweet_by_id(tweet[0])
-    #     tweets_list.append(tweet) 
-    #     users_list.append(user)
-    
-    # tweet, user = api.get_tweet_by_id(1048582463998636037)
-
     tweets, users = api.get_tweets(query = 'bitcoin cash', latest_tweet_id = latest_tweet_id, count = 100)
     tweets, users = api.retrieve_retweeted(tweets, users)
 
@@ -179,7 +169,7 @@ def main():
 
     # json_deserializer = JsonDeserializer("tweets")
     # tweets = json_deserializer.deserialize_json_files()
-    # db_connection.insert_tweets_into_db(tweets)
+    db_connection.insert_tweets_into_db(tweets)
 
     db_connection.close_connection
 

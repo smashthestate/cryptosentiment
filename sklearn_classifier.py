@@ -41,20 +41,20 @@ def clean_tweet(tweet, stopwords):
     tweet = re.sub(r"(@[A-Za-z0-9]+)", " ", tweet) # Remove @mentions
     tweet = re.sub(r"(\w+://\S+)", " ", tweet) # Remove URLs
     tweet = re.sub("[0-9]+", " ", tweet) # Remove numbers
-    tweet = re.sub("&amp;", "and", tweet) # Remove twitter api & representation
+    tweet = re.sub("&amp;", " ", tweet) # Remove twitter api & representation
     tweet = re.sub("&quote;", " ", tweet) # Remove twitter api " representation
     tweet = re.sub(r"([^0-9A-Za-z \t])", " ", tweet) # Remove special characters
-    # tweet = ' '.join(tweet.split())
+    tweet = ' '.join(tweet.split())
     # tweet_word_list = tweet.split()
     # tweet = " ".join([word for word in tweet_word_list if word not in stopwords])
 
     # loop for removing letters repeating more than twice
-    # index_counter = 0
-    # for letter in tweet:
-    #     if index_counter>1 and letter.lower() == tweet[index_counter-1].lower() and letter.lower() == tweet[index_counter-2].lower():
-    #         tweet = tweet[:index_counter] + tweet[index_counter+1:]
-    #         index_counter -= 1
-    #     index_counter += 1
+    index_counter = 0
+    for letter in tweet:
+        if index_counter>1 and letter.lower() == tweet[index_counter-1].lower() and letter.lower() == tweet[index_counter-2].lower():
+            tweet = tweet[:index_counter] + tweet[index_counter+1:]
+            index_counter -= 1
+        index_counter += 1
 
     return tweet
 
@@ -89,7 +89,7 @@ def main():
                         ])
 
     text_nb_clf = Pipeline([('vect', CountVectorizer()),
-                    # ('tfidf', TfidfTransformer()),
+                    ('tfidf', TfidfTransformer()),
                     ('clf', MultinomialNB())
                     ])
 
@@ -134,13 +134,15 @@ def main():
                   'clf__alpha': (1e-2, 1e-3),
     }
 
-    text_lr_clf = text_lr_clf.fit(train_data['text'], train_data['polarity'])
+    clf = text_lr_clf
+
+    clf = clf.fit(train_data['text'], train_data['polarity'])
 
     non_neutral_examples_binary = val_data['polarity'] != 2
-    predicted = text_lr_clf.predict(val_data[non_neutral_examples_binary]['text'])
+    predicted = clf.predict(val_data[non_neutral_examples_binary]['text'])
     print(metrics.accuracy_score(val_data[non_neutral_examples_binary]['polarity'], predicted))
     print(metrics.classification_report(val_data[non_neutral_examples_binary]['polarity'], predicted))    
-    show_most_informative_features(text_lr_clf.steps[0][1], text_lr_clf.steps[2][1])
+    show_most_informative_features(clf.steps[0][1], clf.steps[2][1])
     # for param_name in sorted(parameters.keys()):
     #     print('Best {0} value: {1}'.format(param_name, gs_text_clf.best_params_[param_name]))
 

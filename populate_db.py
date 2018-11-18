@@ -26,9 +26,9 @@ class DbConnection(object):
             "VALUES %s "
             "ON CONFLICT (tweet_id) DO UPDATE "
             "SET retweeted = EXCLUDED.retweeted, "
-            "SET retweet_count = EXCLUDED.retweet_count, "
-            "SET favorited = EXCLUDED.favorited, "
-            "SET favorite_count = EXCLUDED.favorite_count "
+            "retweet_count = EXCLUDED.retweet_count, "
+            "favorited = EXCLUDED.favorited, "
+            "favorite_count = EXCLUDED.favorite_count "
             "RETURNING id")
         
         insert_tweets_values = []
@@ -53,11 +53,11 @@ class DbConnection(object):
                 "VALUES %s "
                 "ON CONFLICT (twitter_user_id) DO UPDATE "
                 "SET name = EXCLUDED.name, "
-                "SET screen_name = EXCLUDED.screen_name, "
-                "SET statuses_count = EXCLUDED.statuses_count, "
-                "SET followers_count = EXCLUDED.followers_count, "
-                "SET friends_count = EXCLUDED.friends_count, "
-                "SET location = EXCLUDED.location"
+                "screen_name = EXCLUDED.screen_name, "
+                "statuses_count = EXCLUDED.statuses_count, "
+                "followers_count = EXCLUDED.followers_count, "
+                "friends_count = EXCLUDED.friends_count, "
+                "location = EXCLUDED.location"
                 "RETURNING id")
 
         insert_users_values = []
