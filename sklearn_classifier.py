@@ -19,7 +19,9 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 
+from nltk import bigrams
 from nltk.corpus import stopwords
+from nltk.tokenize import TweetTokenizer
 from nltk.collocations import *
 from nltk.metrics import BigramAssocMeasures
 from nltk.stem.porter import PorterStemmer
@@ -27,14 +29,25 @@ from nltk.stem.porter import PorterStemmer
 from populate_db import DbConnection
 from json_deserializer import JsonDeserializer
 
-# def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=200):
-#     bigram_finder = BigramCollocationFinder.from_words(tweets)
-#     best_bigrams = bigram_finder.nbest(score_fn, n)
-#     for tweet in tweets:
-#         if best_bigrams in tweet:
-#             best_bigrams
+def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=10):
+    tokenizer = TweetTokenizer()
+    tweets = [tokenizer.tokenize(tweet) for tweet in tweets]
+    # tweets = tokenizer.tokenize_sents(''.join(tweets.data.obj))
+    bigram_finder = BigramCollocationFinder.from_documents(tweets)
+    best_bigrams = bigram_finder.nbest(score_fn, n)
+    best_feats = []
+    for i, tweet in enumerate(tweets):
+        best_feats.append('')
+        for best_bigram in best_bigrams:
+            try:
+                tweet_bigrams = bigrams(tweet)
+            except StopIteration:
+                continue
 
-#     return best_bigrams
+            if best_bigram in tweet_bigrams:
+                    best_feats[i] = ' '.join([best_feats[i], best_bigram[0], best_bigram[1]])
+
+    return best_feats
 
 def clean_tweet(tweet, stopwords):
     # tweet = ' '.join(re.sub(r"(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
@@ -58,7 +71,7 @@ def clean_tweet(tweet, stopwords):
 
     return tweet
 
-def show_most_informative_features(vectorizer, clf, n=10):
+def show_most_informative_features(vectorizer, clf, n=1000):
     feature_names = vectorizer.get_feature_names()
     coefs_with_fns = sorted(zip(clf.coef_[0], feature_names))
     top = zip(coefs_with_fns[:n], coefs_with_fns[:-(n+1):-1])
@@ -128,6 +141,7 @@ def main():
         stopwords_set.add(word)
 
     train_data['text'] = train_data['text'].apply(lambda x: clean_tweet(x, stopwords_set)) 
+    best_feats = bigram_word_feats(train_data['text'])
 
     parameters = {'vect__ngram_range': [(1, 1), (1, 2)],
                 #   'tfidf__use_idf': (True,  False),
