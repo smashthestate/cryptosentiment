@@ -5,6 +5,7 @@ import re
 import jsonpickle
 import collections
 import itertools
+from operator import itemgetter
 # import textblob
 from sklearn.utils import shuffle
 from sklearn.feature_extraction.text import CountVectorizer
@@ -25,9 +26,41 @@ from nltk.tokenize import TweetTokenizer
 from nltk.collocations import *
 from nltk.metrics import BigramAssocMeasures
 from nltk.stem.porter import PorterStemmer
+from nltk.probability import FreqDist, ConditionalFreqDist
 
 from populate_db import DbConnection
 from json_deserializer import JsonDeserializer
+
+def best_word_feats(tweets, labels):
+    word_fd = FreqDist()
+    label_word_fd = ConditionalFreqDist()
+    tokenizer = TweetTokenizer()
+    tweets = [tokenizer.tokenize(tweet) for tweet in tweets]
+
+    for tweet,label in zip(tweets, labels):
+        for word in tweet:
+            word_fd[word.lower()] += 1
+            if label == 0:
+                label_word_fd['0'][word.lower()] += 1
+            else:
+                label_word_fd['4'][word.lower()] += 1 
+
+    total_word_count = word_fd.N()
+    pos_word_count = label_word_fd['4'].N()
+    neg_word_count = label_word_fd['0'].N()
+
+    word_scores = {}
+
+    for (word, freq) in word_fd.items():
+        pos_score = BigramAssocMeasures.chi_sq(label_word_fd['4'][word], (freq, pos_word_count), total_word_count)
+        neg_score = BigramAssocMeasures.chi_sq(label_word_fd['0'][word], (freq, neg_word_count), total_word_count)
+        word_scores[word] = pos_score + neg_score
+    
+    best_words = [word for (word,score) in sorted(word_scores.items(), key=itemgetter(1), reverse=True)][:10000]
+    # best_words = set([word for word, score in best_scores])
+    
+    return best_words
+
 
 def bigrams_generator_handler(tokenized_tweet):
     try:
@@ -37,7 +70,7 @@ def bigrams_generator_handler(tokenized_tweet):
 
     return tweet_bigrams
 
-def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=10):
+def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=10): # not working yet
     tokenizer = TweetTokenizer()
     tweets = [tokenizer.tokenize(tweet) for tweet in tweets]
     # tweets = tokenizer.tokenize_sents(''.join(tweets.data.obj))
@@ -111,10 +144,10 @@ def main():
                     ('clf', MultinomialNB())
                     ])
 
-    text_lr_clf = Pipeline([('vect', CountVectorizer(ngram_range=(1,2))),
-                    ('tfidf', TfidfTransformer()),
-                    ('clf', LogisticRegression(random_state=0, solver='lbfgs'))
-                    ])
+    # text_lr_clf = Pipeline([('vect', CountVectorizer(ngram_range=(1,2))),
+    #                 ('tfidf', TfidfTransformer()),
+    #                 ('clf', LogisticRegression(random_state=0, solver='lbfgs'))
+    #                 ])
 
     negative_tweets = tweets_df_stanford_train[tweets_df_stanford_train['polarity']==0]
     # negative_tweets = negative_tweets[-int(0.35*len(negative_tweets)):]
@@ -146,17 +179,22 @@ def main():
         stopwords_set.add(word)
 
     train_data['text'] = train_data['text'].apply(lambda x: clean_tweet(x, stopwords_set)) 
-    best_feats = bigram_word_feats(train_data['text'])
+    best_words = best_word_feats(train_data['text'], train_data['polarity'])
 
     parameters = {'vect__ngram_range': [(1, 1), (1, 2)],
                 #   'tfidf__use_idf': (True,  False),
                   'clf__alpha': (1e-2, 1e-3),
     }
 
+    text_lr_clf = Pipeline([('vect', CountVectorizer(ngram_range=(1,2), vocabulary=best_words)),
+                    ('tfidf', TfidfTransformer()),
+                    ('clf', LogisticRegression(random_state=0, solver='lbfgs'))
+                    ])
+
     clf = text_lr_clf
 
     # clf = clf.fit(train_data['text'], train_data['polarity'])
-    clf = clf.fit(best_feats, train_data['polarity'])
+    clf = clf.fit(train_data['text'], train_data['polarity'])
 
     non_neutral_examples_binary = val_data['polarity'] != 2
     predicted = clf.predict(val_data[non_neutral_examples_binary]['text'])
