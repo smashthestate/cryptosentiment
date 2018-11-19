@@ -29,6 +29,14 @@ from nltk.stem.porter import PorterStemmer
 from populate_db import DbConnection
 from json_deserializer import JsonDeserializer
 
+def bigrams_generator_handler(tokenized_tweet):
+    try:
+        tweet_bigrams = list(bigrams(tokenized_tweet))
+    except StopIteration:
+        return tweet_bigrams
+
+    return tweet_bigrams
+
 def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=10):
     tokenizer = TweetTokenizer()
     tweets = [tokenizer.tokenize(tweet) for tweet in tweets]
@@ -39,10 +47,7 @@ def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=10):
     for i, tweet in enumerate(tweets):
         best_feats.append('')
         for best_bigram in best_bigrams:
-            try:
-                tweet_bigrams = bigrams(tweet)
-            except StopIteration:
-                continue
+            tweet_bigrams = bigrams_generator_handler(tweet)
 
             if best_bigram in tweet_bigrams:
                     best_feats[i] = ' '.join([best_feats[i], best_bigram[0], best_bigram[1]])
@@ -150,7 +155,8 @@ def main():
 
     clf = text_lr_clf
 
-    clf = clf.fit(train_data['text'], train_data['polarity'])
+    # clf = clf.fit(train_data['text'], train_data['polarity'])
+    clf = clf.fit(best_feats, train_data['polarity'])
 
     non_neutral_examples_binary = val_data['polarity'] != 2
     predicted = clf.predict(val_data[non_neutral_examples_binary]['text'])
