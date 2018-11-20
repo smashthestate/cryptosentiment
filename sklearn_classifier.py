@@ -56,9 +56,8 @@ def best_word_feats(tweets, labels):
         neg_score = BigramAssocMeasures.chi_sq(label_word_fd['0'][word], (freq, neg_word_count), total_word_count)
         word_scores[word] = pos_score + neg_score
     
-    best_words = [word for (word,score) in sorted(word_scores.items(), key=itemgetter(1), reverse=True)][:10000]
-    # best_words = set([word for word, score in best_scores])
-    
+    best_words = [word for (word,score) in sorted(word_scores.items(), key=itemgetter(1), reverse=True)][:50000]
+
     return best_words
 
 
@@ -70,22 +69,22 @@ def bigrams_generator_handler(tokenized_tweet):
 
     return tweet_bigrams
 
-def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=10): # not working yet
+def bigram_word_feats(tweets, score_fn = BigramAssocMeasures.chi_sq, n=1000):
     tokenizer = TweetTokenizer()
     tweets = [tokenizer.tokenize(tweet) for tweet in tweets]
     # tweets = tokenizer.tokenize_sents(''.join(tweets.data.obj))
     bigram_finder = BigramCollocationFinder.from_documents(tweets)
     best_bigrams = bigram_finder.nbest(score_fn, n)
-    best_feats = []
-    for i, tweet in enumerate(tweets):
-        best_feats.append('')
-        for best_bigram in best_bigrams:
-            tweet_bigrams = bigrams_generator_handler(tweet)
+    # best_feats = []
+    # for i, tweet in enumerate(tweets):
+    #     best_feats.append('')
+    #     for best_bigram in best_bigrams:
+    #         tweet_bigrams = bigrams_generator_handler(tweet)
 
-            if best_bigram in tweet_bigrams:
-                    best_feats[i] = ' '.join([best_feats[i], best_bigram[0], best_bigram[1]])
+    #         if best_bigram in tweet_bigrams:
+    #                 best_feats[i] = ' '.join([best_feats[i], best_bigram[0], best_bigram[1]])
 
-    return best_feats
+    return best_bigrams
 
 def clean_tweet(tweet, stopwords):
     # tweet = ' '.join(re.sub(r"(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
@@ -94,22 +93,22 @@ def clean_tweet(tweet, stopwords):
     tweet = re.sub("[0-9]+", " ", tweet) # Remove numbers
     tweet = re.sub("&amp;", " ", tweet) # Remove twitter api & representation
     tweet = re.sub("&quote;", " ", tweet) # Remove twitter api " representation
-    tweet = re.sub(r"([^0-9A-Za-z \t])", " ", tweet) # Remove special characters
+    tweet = re.sub(r"([^0-9A-Za-z \t])", "", tweet) # Remove special characters
     tweet = ' '.join(tweet.split())
     # tweet_word_list = tweet.split()
     # tweet = " ".join([word for word in tweet_word_list if word not in stopwords])
 
     # loop for removing letters repeating more than twice
     index_counter = 0
-    for letter in tweet:
-        if index_counter>1 and letter.lower() == tweet[index_counter-1].lower() and letter.lower() == tweet[index_counter-2].lower():
-            tweet = tweet[:index_counter] + tweet[index_counter+1:]
-            index_counter -= 1
-        index_counter += 1
+    # for letter in tweet:
+    #     if index_counter>1 and letter.lower() == tweet[index_counter-1].lower() and letter.lower() == tweet[index_counter-2].lower():
+    #         tweet = tweet[:index_counter] + tweet[index_counter+1:]
+    #         index_counter -= 1
+    #     index_counter += 1
 
     return tweet
 
-def show_most_informative_features(vectorizer, clf, n=1000):
+def show_most_informative_features(vectorizer, clf, n=20):
     feature_names = vectorizer.get_feature_names()
     coefs_with_fns = sorted(zip(clf.coef_[0], feature_names))
     top = zip(coefs_with_fns[:n], coefs_with_fns[:-(n+1):-1])
@@ -138,11 +137,6 @@ def main():
                                             alpha=1e-3, random_state=42,
                                             max_iter=5, tol=None))
                         ])
-
-    text_nb_clf = Pipeline([('vect', CountVectorizer()),
-                    ('tfidf', TfidfTransformer()),
-                    ('clf', MultinomialNB())
-                    ])
 
     # text_lr_clf = Pipeline([('vect', CountVectorizer(ngram_range=(1,2))),
     #                 ('tfidf', TfidfTransformer()),
@@ -179,21 +173,28 @@ def main():
         stopwords_set.add(word)
 
     train_data['text'] = train_data['text'].apply(lambda x: clean_tweet(x, stopwords_set)) 
-    best_words = best_word_feats(train_data['text'], train_data['polarity'])
+    # best_words = best_word_feats(train_data['text'], train_data['polarity'])
+    # best_bigrams = bigram_word_feats(train_data['text'])
+    # best_feats = best_words.extend(best_bigrams)
 
     parameters = {'vect__ngram_range': [(1, 1), (1, 2)],
                 #   'tfidf__use_idf': (True,  False),
                   'clf__alpha': (1e-2, 1e-3),
     }
 
-    text_lr_clf = Pipeline([('vect', CountVectorizer(ngram_range=(1,2), vocabulary=best_words)),
+    text_lr_clf = Pipeline([('vect', CountVectorizer(ngram_range=(1,2))),#, vocabulary=best_feats)),
                     ('tfidf', TfidfTransformer()),
                     ('clf', LogisticRegression(random_state=0, solver='lbfgs'))
                     ])
+    
+    text_nb_clf = Pipeline([('vect', CountVectorizer()),
+                # ('tfidf', TfidfTransformer()),
+                ('clf', MultinomialNB())
+                ])
 
     clf = text_lr_clf
 
-    # clf = clf.fit(train_data['text'], train_data['polarity'])
+
     clf = clf.fit(train_data['text'], train_data['polarity'])
 
     non_neutral_examples_binary = val_data['polarity'] != 2
